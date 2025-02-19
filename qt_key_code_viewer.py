@@ -4,6 +4,9 @@ from PyQt5.QtCore import Qt, QEvent, QTimer
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QScrollArea, QWidget, QLabel
 
+__version__ = "0.1.0"
+__author__ = "Leland Green"
+__license__ = "CC0-1.0"
 
 class KeyCodeWindow(QMainWindow):
     def __init__(self):
