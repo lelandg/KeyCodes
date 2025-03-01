@@ -1,18 +1,51 @@
 import sys
 
 from PyQt5.QtCore import Qt, QEvent, QTimer
-from PyQt5.QtGui import QKeySequence
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QScrollArea, QWidget, QLabel
+from PyQt5.QtGui import QKeySequence, QFont
+from PyQt5.QtWidgets import QDialog, QApplication, QMainWindow, QVBoxLayout, QScrollArea, QWidget, QLabel, QPushButton
 
-__version__ = "0.1.0"
+from _version import __version__
+
 __author__ = "Leland Green"
 __license__ = "CC0-1.0"
+
+
+class HelpDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+
+        # Set window title and size
+        self.setWindowTitle("Instructions.")
+        self.resize(300, 200)
+
+        # Help message as a QLabel
+        help_text = QLabel("Press a key and note the returned value.\n\n"
+                           "Press F1 for help. (This screen.)\n\n"
+                           "Press Esc twice to quit. (Or three times from this dialog.)")
+        help_text.setWordWrap(True)  # Enable text wrapping
+        # help_text.setAlignment(Qt.AlignCenter)
+        # help_text.setStyleSheet("QLabel { background-color: #f0f0f0; padding: 10px; border: 1px solid #ccc; }")
+        font = QFont()
+        font.setPointSize(12)
+        help_text.setFont(font)
+
+        # Close button
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(self.close)
+
+        # Dialog layout
+        layout = QVBoxLayout()
+        layout.addWidget(help_text)
+        layout.addWidget(help_text)
+        layout.addWidget(close_button)
+        self.setLayout(layout)
+
 
 class KeyCodeWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Keycodes Viewer")
-        self.setGeometry(0, 0, 300, 500)
+        self.setWindowTitle("Keycodes - <Esc> twice to quit.")
+        self.setGeometry(0, 0, 400, 500)
 
         # Set scrollable area
         self.scroll_area = QScrollArea()
@@ -55,9 +88,25 @@ class KeyCodeWindow(QMainWindow):
         window_geometry.moveCenter(center_point)
         self.move(window_geometry.topLeft())
 
+    def sanitize_string(self, value):
+        """Sanitize strings to avoid UnicodeEncodeError."""
+        try:
+            return str(value).encode("utf-8", errors="replace").decode("utf-8")
+        except Exception:
+            return "<invalid>"
+
     def add_label(self, name, value):
         """Add a label to the layout and scroll to the bottom."""
-        label = QLabel(f"<span style='color: purple;'>{name}</span>: <span style='color: blue;'>{value}</span>")
+        # sanitized_name = self.sanitize_string(name)
+        # sanitized_value = self.sanitize_string(value)
+        # label = QLabel(f"<span style='color: purple;'>{sanitized_name}</span>: <span style='color: blue;'>{sanitized_value}</span>")
+        # print(f"Key pressed: {sanitized_name} ({sanitized_value})")
+        label = QLabel(f"<span style='color: purple;'>{name.replace('<','&lt;').replace('>','&gt;')}</span> : <span style='color: blue;'>{value}</span>")
+        label.setWordWrap(True)
+        label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        label.setStyleSheet("QLabel { background-color: #f0f0f0; padding: 0px; border: 0px solid #ccc; }")
+        label.setToolTip(f"Key pressed: {name} ({value})")
+
         print(f"Key pressed: {name} ({value})")
         self.layout.addWidget(label)
         if not self.loading:
@@ -67,14 +116,33 @@ class KeyCodeWindow(QMainWindow):
     def reset_esc_counter(self):
         self.esc_counter = 0
 
+
     def keyPressEvent(self, event):
         """Override the default key press event."""
         key = event.key()
-        key_name = QKeySequence(key).toString()
+        key_name = event.text()
+
+        # print(f"Key pressed: {key_name} ({key})")
+
+        # Initialize a list to store active modifiers
+        modifiers = []
+
+        # Check for specific modifiers
+        if event.modifiers() & Qt.ControlModifier:
+            modifiers.append("Ctrl")
+        if event.modifiers() & Qt.AltModifier:
+            modifiers.append("Alt")
+        if event.modifiers() & Qt.ShiftModifier:
+            modifiers.append("Shift")
+
+        if len(modifiers) > 0:
+            key_name = QKeySequence(key).toString(QKeySequence.NativeText)
+        # print(f"Key pressed: {key_name} ({key})")
         # Handle Escape key to exit
         if key == Qt.Key_Escape:
+            key_name = "<Esc>"
             self.esc_counter += 1
-            print("<Esc> pressed. Counter:", self.esc_counter)
+            # print("<Esc> pressed. Press again to quit.")
             if self.esc_counter >= 2:
                 self.running = False
                 self.close()
@@ -82,8 +150,24 @@ class KeyCodeWindow(QMainWindow):
         else:
             self.reset_esc_counter()
 
-        # Handle other keys
-        self.processKey(key)
+        if key in [Qt.Key_Control, Qt.Key_Alt, Qt.Key_Shift, Qt.Key_Meta] and not key_name:
+            key_name = "+".join(modifiers)
+        elif not key_name:
+            key_name = QKeySequence(key).toString()
+
+
+        # if key_name:
+        if not key in [Qt.Key_Control, Qt.Key_Alt, Qt.Key_Shift, Qt.Key_Meta]:
+            modifiers.append(key_name)
+        if len(modifiers) > 0:
+            self.add_label("+".join(modifiers), key)
+        else:
+            self.add_label(key_name, key)
+
+        if key == Qt.Key_F1:
+            help_dialog = HelpDialog()
+            help_dialog.exec()
+
         event.accept()  # Ensure the event isn't processed further.
 
     def eventFilter(self, obj, event):
@@ -105,17 +189,9 @@ class KeyCodeWindow(QMainWindow):
 
         return super().eventFilter(obj, event)
 
-    def processKey(self, key):
-        """Handle non-scrolling key inputs."""
-        # Your logic for handling keys goes here
-        key_name = QKeySequence(key).toString()
-        if key_name:
-            self.add_label(key_name, key)
-        else:
-            self.add_label(f"Key_{key}", "<not configured>")
-
 
 def main():
+    print(f"Keycodes Viewer v{__version__}")
     # Print instructions for user
     print("Press <Esc> twice to quit.")
 
