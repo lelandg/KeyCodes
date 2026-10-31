@@ -16,3 +16,27 @@ Two standalone GUI utilities that show the keycode a framework reports when you 
 ## Build / test
 
 - No tests, no linter config, no build step.
+
+## Scanning & review
+
+Policy lives in `~/.config/agents/AGENTS.md` -> "Dependency, code, and secret
+scanning" and "Model delegation & cross-provider review". It is not restated
+here; read it there. What is specific to this repo:
+
+- CI runs `gitleaks` and `osv-scanner` on every PR, every push to `main`, and
+  weekly (`.github/workflows/security.yml`). The npm jobs from the shared
+  workflow are deliberately absent: there is no committed `package-lock.json`,
+  so `npm ci` cannot run and the check would be permanently red.
+- Dependabot config is committed, with grouped security PRs (`.github/dependabot.yml`),
+  covering `pip` (`requirements.txt`) and `github-actions`.
+- Dependabot **alerts** are a per-repo GitHub setting; a config file does not
+  turn them on. Without them the config above governs version updates only.
+  Check: `gh api -X GET repos/lelandg/KeyCodes/vulnerability-alerts` (exit 0 = on,
+  404 = off). Enable: same path with `-X PUT`.
+- PR reviewers: **Codex** (GPT-6 Astra, run locally against the committed branch
+  before opening the PR) and **CodeRabbit** (`coderabbitai[bot]`, re-reviews
+  every push -- the one to wait on for the head being merged). A green CodeRabbit
+  check does not mean a review ran: read the check run's output title, where only
+  `Finished` means reviewed. Silence means clean; findings arrive as inline
+  comments. `no-ai-review` at PR creation skips the bots.
+- The global pre-commit hook runs `gitleaks` and fails closed.
