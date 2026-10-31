@@ -1,3 +1,4 @@
+-c requirements-security.txt
 PyQt5
 pygame
 ipython
