@@ -1,8 +1,8 @@
 import sys
 
-from PyQt5.QtCore import Qt, QEvent, QTimer
-from PyQt5.QtGui import QKeySequence, QFont
-from PyQt5.QtWidgets import QDialog, QApplication, QMainWindow, QVBoxLayout, QScrollArea, QWidget, QLabel, QPushButton
+from PySide6.QtCore import Qt, QEvent, QTimer
+from PySide6.QtGui import QKeySequence, QFont
+from PySide6.QtWidgets import QDialog, QApplication, QMainWindow, QVBoxLayout, QScrollArea, QWidget, QLabel, QPushButton
 
 from _version import __version__
 
@@ -23,7 +23,7 @@ class HelpDialog(QDialog):
                            "Press F1 for help. (This screen.)\n\n"
                            "Press Esc twice to quit. (Or three times from this dialog.)")
         help_text.setWordWrap(True)  # Enable text wrapping
-        # help_text.setAlignment(Qt.AlignCenter)
+        # help_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         # help_text.setStyleSheet("QLabel { background-color: #f0f0f0; padding: 10px; border: 1px solid #ccc; }")
         font = QFont()
         font.setPointSize(12)
@@ -55,7 +55,7 @@ class KeyCodeWindow(QMainWindow):
         container_widget = QWidget()
         self.layout = QVBoxLayout(container_widget)
         # Extract all key name and value pairs from Qt
-        qt_key_definitions = {name: value for name, value in vars(Qt).items() if name.startswith("Key_")}
+        qt_key_definitions = {name: member.value for name, member in Qt.Key.__members__.items()}
 
         # Sort by value for a clean output
         sorted_qt_keys = sorted(qt_key_definitions.items(), key=lambda x: x[1])
@@ -103,7 +103,7 @@ class KeyCodeWindow(QMainWindow):
         # print(f"Key pressed: {sanitized_name} ({sanitized_value})")
         label = QLabel(f"<span style='color: purple;'>{name.replace('<','&lt;').replace('>','&gt;')}</span> : <span style='color: blue;'>{value}</span>")
         label.setWordWrap(True)
-        label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         label.setStyleSheet("QLabel { background-color: #f0f0f0; padding: 0px; border: 0px solid #ccc; }")
         label.setToolTip(f"Key pressed: {name} ({value})")
 
@@ -128,18 +128,18 @@ class KeyCodeWindow(QMainWindow):
         modifiers = []
 
         # Check for specific modifiers
-        if event.modifiers() & Qt.ControlModifier:
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             modifiers.append("Ctrl")
-        if event.modifiers() & Qt.AltModifier:
+        if event.modifiers() & Qt.KeyboardModifier.AltModifier:
             modifiers.append("Alt")
-        if event.modifiers() & Qt.ShiftModifier:
+        if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
             modifiers.append("Shift")
 
         if len(modifiers) > 0:
-            key_name = QKeySequence(key).toString(QKeySequence.NativeText)
+            key_name = QKeySequence(key).toString(QKeySequence.SequenceFormat.NativeText)
         # print(f"Key pressed: {key_name} ({key})")
         # Handle Escape key to exit
-        if key == Qt.Key_Escape:
+        if key == Qt.Key.Key_Escape:
             key_name = "<Esc>"
             self.esc_counter += 1
             # print("<Esc> pressed. Press again to quit.")
@@ -150,21 +150,21 @@ class KeyCodeWindow(QMainWindow):
         else:
             self.reset_esc_counter()
 
-        if key in [Qt.Key_Control, Qt.Key_Alt, Qt.Key_Shift, Qt.Key_Meta] and not key_name:
+        if key in [Qt.Key.Key_Control, Qt.Key.Key_Alt, Qt.Key.Key_Shift, Qt.Key.Key_Meta] and not key_name:
             key_name = "+".join(modifiers)
         elif not key_name:
             key_name = QKeySequence(key).toString()
 
 
         # if key_name:
-        if not key in [Qt.Key_Control, Qt.Key_Alt, Qt.Key_Shift, Qt.Key_Meta]:
+        if not key in [Qt.Key.Key_Control, Qt.Key.Key_Alt, Qt.Key.Key_Shift, Qt.Key.Key_Meta]:
             modifiers.append(key_name)
         if len(modifiers) > 0:
             self.add_label("+".join(modifiers), key)
         else:
             self.add_label(key_name, key)
 
-        if key == Qt.Key_F1:
+        if key == Qt.Key.Key_F1:
             help_dialog = HelpDialog()
             help_dialog.exec()
 
@@ -172,15 +172,15 @@ class KeyCodeWindow(QMainWindow):
 
     def eventFilter(self, obj, event):
         """Filter events to intercept key presses."""
-        if event.type() == QEvent.KeyPress:
+        if event.type() == QEvent.Type.KeyPress:
             key = event.key()
 
-            if obj == self.scroll_area and event.type() == event.KeyPress:
+            if obj == self.scroll_area and event.type() == QEvent.Type.KeyPress:
                 self.keyPressEvent(event)
 
             # Optionally, log or pre-process key events here
             # Example: Pass scrolling keys directly to keyPressEvent
-            if key in (Qt.Key_Up, Qt.Key_Down, Qt.Key_PageUp, Qt.Key_PageDown):
+            if key in (Qt.Key.Key_Up, Qt.Key.Key_Down, Qt.Key.Key_PageUp, Qt.Key.Key_PageDown):
                 return super().eventFilter(obj, event)  # Let the event be handled normally.
 
             # Otherwise indicate that the event is handled here
@@ -195,11 +195,11 @@ def main():
     # Print instructions for user
     print("Press <Esc> twice to quit.")
 
-    # Launch PyQt5 window
+    # Launch the Qt window
     app = QApplication(sys.argv)
     window = KeyCodeWindow()
     window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":
