@@ -1,6 +1,6 @@
 # KeyCodes
 
-Two standalone GUI utilities that show the keycode a framework reports when you press a key. PyQt5 and Pygame return different values for the same key. Users run the script that matches their framework.
+Two standalone GUI utilities that show the keycode a framework reports when you press a key. Qt (PySide6) and Pygame return different values for the same key. Users run the script that matches their framework.
 
 ## Gotchas
 
