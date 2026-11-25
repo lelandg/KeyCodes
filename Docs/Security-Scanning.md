@@ -1,7 +1,8 @@
 # Security scanning: Dependabot and zizmor specifics
 
-Moved word for word from the "Scanning & review" section of `AGENTS.md`, which
-keeps the short list of what runs and points here. Policy is in
+Moved from the "Scanning & review" section of `AGENTS.md`, which keeps the
+short list of what runs and points here; word for word except the
+`automated-security-fixes` GET response, corrected in the last bullet. Policy is in
 `~/.config/agents/AGENTS.md` -> "Dependencies, advisories, and scanning". "The
 config above" below means `.github/dependabot.yml`.
 
@@ -31,7 +32,11 @@ config above" below means `.github/dependabot.yml`.
   404 = off only when an admin token gets it: GitHub also answers 404 to a
   token without the permission, so confirm with an admin token first. Enable: same path with `-X PUT`.
 - Alerts and automatic security **updates** are two switches, not one. Alerts
-  only report; the half that opens PRs is `automated-security-fixes` (same API
-  shape). It is deliberately OFF here: this repo took its first scan with a
+  only report; the half that opens PRs is `automated-security-fixes` (same
+  path shape and the same `-X PUT` to enable, but its GET answers differently:
+  HTTP 200 with a JSON body, `"enabled": true` or `false`, plus `paused` --
+  never 204, so read the body, not the status line:
+  `gh api -X GET repos/lelandg/KeyCodes/automated-security-fixes`).
+  It is deliberately OFF here: this repo took its first scan with a
   pre-existing advisory backlog, and enabling it would open that backlog as
   PRs at once. Turn it on per repo once the backlog is cleared.
